@@ -10,7 +10,7 @@ provider "aws" {
 # AWS SECURITY GROUP - ECS Tasks, allow traffic only from Load Balancer
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_security_group" "ecs_tasks_sg" {
-  name        = "${var.name_preffix}-ecs-tasks-sg"
+  name        = "${var.name_prefix}-ecs-tasks-sg"
   description = "Allow inbound access from the LB only"
   vpc_id      = var.vpc_id
   ingress {
@@ -26,7 +26,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name = "${var.name_preffix}-ecs-tasks-sg"
+    Name = "${var.name_prefix}-ecs-tasks-sg"
   }
 }
 
@@ -35,7 +35,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_ecs_service" "service" {
   depends_on                         = [aws_lb_listener.listener]
-  name                               = "${var.name_preffix}-service"
+  name                               = "${var.name_prefix}-service"
   cluster                            = var.ecs_cluster_arn
   task_definition                    = var.task_definition_arn
   launch_type                        = "FARGATE"
@@ -85,12 +85,12 @@ resource "aws_ecs_service" "service" {
 # AWS ECS Auto Scale Role
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_iam_role" "ecs_autoscale_role" {
-  name               = "${var.name_preffix}-ecs-autoscale-role"
+  name               = "${var.name_prefix}-ecs-autoscale-role"
   assume_role_policy = file("${path.module}/files/iam/ecs_autoscale_iam_role.json")
 }
 
 resource "aws_iam_role_policy" "ecs_autoscale_role_policy" {
-  name = "${var.name_preffix}-ecs-autoscale-role-policy"
+  name = "${var.name_prefix}-ecs-autoscale-role-policy"
   role = aws_iam_role.ecs_autoscale_role.id
   policy = file(
     "${path.module}/files/iam/ecs_autoscale_iam_role_policy.json",
@@ -101,7 +101,7 @@ resource "aws_iam_role_policy" "ecs_autoscale_role_policy" {
 # AWS Auto Scaling - CloudWatch Alarm CPU High
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "${var.name_preffix}-cpu-high"
+  alarm_name          = "${var.name_prefix}-cpu-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "3"
   metric_name         = "CPUUtilization"
@@ -120,7 +120,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 # AWS Auto Scaling - CloudWatch Alarm CPU Low
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-  alarm_name          = "${var.name_preffix}-cpu-low"
+  alarm_name          = "${var.name_prefix}-cpu-low"
   comparison_operator = "LessThanOrEqualToThreshold"
   evaluation_periods  = "3"
   metric_name         = "CPUUtilization"
@@ -139,7 +139,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
 # AWS Auto Scaling - Scaling Up Policy
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_appautoscaling_policy" "scale_up_policy" {
-  name               = "${var.name_preffix}-scale-up-policy"
+  name               = "${var.name_prefix}-scale-up-policy"
   depends_on         = [aws_appautoscaling_target.scale_target]
   service_namespace  = "ecs"
   resource_id        = "service/${var.ecs_cluster_name}/${aws_ecs_service.service.name}"
@@ -159,7 +159,7 @@ resource "aws_appautoscaling_policy" "scale_up_policy" {
 # AWS Auto Scaling - Scaling Down Policy
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_appautoscaling_policy" "scale_down_policy" {
-  name               = "${var.name_preffix}-scale-down-policy"
+  name               = "${var.name_prefix}-scale-down-policy"
   depends_on         = [aws_appautoscaling_target.scale_target]
   service_namespace  = "ecs"
   resource_id        = "service/${var.ecs_cluster_name}/${aws_ecs_service.service.name}"
@@ -191,13 +191,20 @@ resource "aws_appautoscaling_target" "scale_target" {
 # AWS SECURITY GROUP - Control Access to ALB
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_security_group" "lb_sg" {
-  name        = "${var.name_preffix}-lb-sg"
+  name        = "${var.name_prefix}-lb-sg"
   description = "Control access to LB"
   vpc_id      = var.vpc_id
   ingress {
     protocol    = "tcp"
     from_port   = 80
     to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    protocol  = "tcp"
+    to_port   = 443
+    from_port = 443
+
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
@@ -207,7 +214,7 @@ resource "aws_security_group" "lb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name = "${var.name_preffix}-lb-sg"
+    Name = "${var.name_prefix}-lb-sg"
   }
 }
 
@@ -215,7 +222,7 @@ resource "aws_security_group" "lb_sg" {
 # AWS LOAD BALANCER
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_lb" "lb" {
-  name                             = "${var.name_preffix}-lb"
+  name                             = "${var.name_prefix}-lb"
   internal                         = var.internal_lb
   load_balancer_type               = "application"
   subnets                          = var.internal_lb ? var.private_subnets : var.public_subnets
@@ -223,7 +230,7 @@ resource "aws_lb" "lb" {
   enable_deletion_protection       = false
   enable_cross_zone_load_balancing = true
   tags = {
-    Name = "${var.name_preffix}-lb"
+    Name = "${var.name_prefix}-lb"
   }
 }
 
@@ -232,7 +239,7 @@ resource "aws_lb" "lb" {
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_lb_target_group" "lb_tg" {
   depends_on  = [aws_lb.lb]
-  name        = "${var.name_preffix}-lb-tg"
+  name        = "${var.name_prefix}-lb-tg"
   target_type = "ip"
   protocol    = "HTTP"
   port        = var.container_port
@@ -242,7 +249,7 @@ resource "aws_lb_target_group" "lb_tg" {
     port = var.container_port
   }
   tags = {
-    Name = "${var.name_preffix}-lb-tg"
+    Name = "${var.name_prefix}-lb-tg"
   }
 }
 
@@ -252,10 +259,29 @@ resource "aws_lb_target_group" "lb_tg" {
 resource "aws_lb_listener" "listener" {
   depends_on        = [aws_lb_target_group.lb_tg]
   load_balancer_arn = aws_lb.lb.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-FS-1-2-Res-2019-08"
+  certificate_arn   = var.certificate_arn
   default_action {
     target_group_arn = aws_lb_target_group.lb_tg.arn
     type             = "forward"
+  }
+}
+
+resource "aws_lb_listener" "redirect" {
+  depends_on        = [aws_lb_target_group.lb_tg]
+  load_balancer_arn = aws_lb.lb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }

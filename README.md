@@ -18,7 +18,7 @@ Check valid versions on:
         module "ecs-fargate-service" {
             source              = "cn-terraform/ecs-fargate-service/aws"
             version             = "1.0.10"
-            name_preffix        = var.name_preffix
+            name_prefix         = var.name_prefix
             profile             = var.profile
             region              = var.region
             vpc_id              = module.networking.vpc_id
@@ -34,7 +34,7 @@ Check the section "Other modules that you may need to use this module" for detai
 
 ## Input values
 
-* name_preffix: Name preffix for resources on AWS.
+* name_prefix: Name preffix for resources on AWS.
 * profile: AWS API key credentials to use.
 * region: AWS Region the infrastructure is hosted in.
 * vpc_id: ID of the VPC.
@@ -87,7 +87,7 @@ The networking module should look like this:
         module "networking" {
     		    source          = "cn-terraform/networking/aws"
             version         = "2.0.3"
-            name_preffix    = var.name_preffix
+            name_prefix     = var.name_prefix
             profile         = var.profile
             region          = var.region
             vpc_cidr_block  = "192.168.0.0/16"
@@ -105,7 +105,7 @@ The ECS cluster module should look like this:
         module "ecs-cluster" {
             source       = "cn-terraform/ecs-cluster/aws"
             version      = "1.0.2"
-            name_preffix = var.name_preffix
+            name_prefix  = var.name_prefix
             profile      = var.profile
             region       = var.region
         }
@@ -119,10 +119,10 @@ The task definition module should like this:
         module "td" {
     	      source          = "cn-terraform/ecs-fargate-task-definition/aws"
             version         = "1.0.1"
-            name_preffix    = var.name_preffix
+            name_prefix     = var.name_prefix
             profile         = var.profile
             region          = var.region
-            container_name  = "${var.name_preffix}-<NAME>"
+            container_name  = "${var.name_prefix}-<NAME>"
             container_image = "<IMAGE_NAME>:<IMAGE_TAG>"
             container_port  = <PORT>
     	}
@@ -130,4 +130,3 @@ The task definition module should like this:
 Check versions for this module on:
 * Github Releases: <https://github.com/cn-terraform/terraform-aws-ecs-fargate-task-definition/releases>
 * Terraform Module Registry: <https://registry.terraform.io/modules/cn-terraform/ecs-fargate-task-definition/aws>
-
